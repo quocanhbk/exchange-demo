@@ -7,7 +7,7 @@ const initWalletConnect = (): Connector => {
         return new WalletConnectConnector({
             qrcode: true,
             infuraId: "52e62e876fe64ea2b200aea33d8e22f1",
-            supportedChainIds: [1],
+            supportedChainIds: [4],
         })
     }
     const handleActivationError = (err: Error) => {

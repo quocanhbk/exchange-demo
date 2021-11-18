@@ -5,7 +5,7 @@ import { Connector } from "../types"
 // Injected is actually MetaMask Extension
 const initInjected = (): Connector => {
     return {
-        web3ReactConnector: new InjectedConnector({ supportedChainIds: [1] }),
+        web3ReactConnector: new InjectedConnector({ supportedChainIds: [4] }),
         handleActivationError: (err: Error) => {
             return err instanceof UserRejectedRequestError
                 ? new ConnectionRejectedError()

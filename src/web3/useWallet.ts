@@ -136,6 +136,7 @@ const useWallet = () => {
         isConnecting: status === "connecting",
         error,
         isActive: web3React.active,
+        ethereum: web3React.library,
     }
 
     return wallet
