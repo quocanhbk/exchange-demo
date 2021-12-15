@@ -5,9 +5,9 @@ import { Connector } from "../types"
 const initTrezor = (): Connector => {
     return {
         web3ReactConnector: new TrezorConnector({
-            manifestEmail: "dummy@abc.xyz",
-            manifestAppUrl: "https://localhost:1234",
             chainId: 4,
+            manifestAppUrl: "https://localhost:1234",
+            manifestEmail: "dummy@abc.xyz",
             url: "",
         }),
     }

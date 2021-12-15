@@ -60,6 +60,9 @@ const Home: NextPage = () => {
                         <Button colorScheme="green" w="20rem" onClick={() => wallet.connect("trezor")}>
                             Connect Trezor
                         </Button>
+                        <Button colorScheme="green" w="20rem" onClick={() => wallet.connect("gnosis")}>
+                            Connect Gnosis
+                        </Button>
                     </>
                 ) : (
                     <>

@@ -21,12 +21,12 @@ const useWallet = () => {
     const web3React = useWeb3React()
     const { account, chainId } = web3React
     const activationId = useRef(0)
-
+    const connector = useRef(null)
     // Current chain id
     const chain = useMemo(() => (chainId ? getChain(chainId) : null), [chainId])
 
     const reset = useCallback(() => {
-        ;(connectors["walletConnect"].web3ReactConnector as WalletConnectConnector).walletConnectProvider = undefined
+        ;(connectors["walletConnect"]().web3ReactConnector as WalletConnectConnector).walletConnectProvider = undefined
         if (web3React.active) {
             web3React.deactivate()
         }
@@ -59,7 +59,7 @@ const useWallet = () => {
             // start connecting if nothing went wrong
             setStatus("connecting")
 
-            const connector = connectors[connectorId]
+            const connector = connectors[connectorId]()
 
             // get injected web3 connector
             const web3ReactConnector = connector.web3ReactConnector
