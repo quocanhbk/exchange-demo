@@ -6,7 +6,6 @@ import initWalletConnect from "./walletConnect"
 export const connectors = {
     injected: initInjected,
     walletConnect: initWalletConnect,
-    trezor: initTrezor,
     gnosis: initGnosis,
 } as const
 

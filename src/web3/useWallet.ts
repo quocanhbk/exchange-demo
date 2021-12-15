@@ -92,6 +92,7 @@ const useWallet = () => {
                 }
                 setStatus("connected")
             } catch (err: any) {
+                console.log(err)
                 if (id !== activationId.current) return
                 setConnectorName(null)
                 setStatus("error")
