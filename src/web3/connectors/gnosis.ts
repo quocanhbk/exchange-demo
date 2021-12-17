@@ -1,4 +1,4 @@
-import { SafeAppConnector } from "@gnosis.pm/safe-apps-web3-react"
+import { SafeAppConnector } from "../../safeConnector"
 import { Connector } from "../types"
 
 // Injected is actually MetaMask Extension

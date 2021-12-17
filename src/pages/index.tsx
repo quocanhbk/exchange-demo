@@ -1,7 +1,8 @@
 import { Box, Button, Text, VStack, Heading, Input } from "@chakra-ui/react"
 import type { NextPage } from "next"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import Web3 from "web3"
+import OldWeb3 from "oldWeb3"
 import { abi, address } from "../web3/smartContract"
 import useWalletContext from "../web3/useWalletContext"
 import { useQuery } from "react-query"
@@ -10,13 +11,13 @@ const Home: NextPage = () => {
     const [name, setName] = useState("")
 
     const setGreeting = async () => {
-        const web3 = new Web3(wallet.ethereum)
+        const web3 = wallet.connector === "trezor" ? new OldWeb3(wallet.ethereum) : new Web3(wallet.ethereum)
         const greetingContract = new web3.eth.Contract(abi, address)
         await greetingContract.methods.setGreeting(name).send({ from: wallet.account })
         refetch()
     }
     const getGreeting = async (): Promise<string> => {
-        const web3 = new Web3(wallet.ethereum)
+        const web3 = wallet.connector === "trezor" ? new OldWeb3(wallet.ethereum) : new Web3(wallet.ethereum)
         const greetingContract = new web3.eth.Contract(abi, address)
         let greeting = await greetingContract.methods.greet().call()
         return greeting
@@ -57,8 +58,8 @@ const Home: NextPage = () => {
                         <Button colorScheme="blue" w="20rem" onClick={() => wallet.connect("walletConnect")}>
                             Connect WalletConnect
                         </Button>
-                        <Button colorScheme="green" w="20rem" onClick={() => wallet.connect("gnosis")}>
-                            Connect Gnosis
+                        <Button colorScheme="green" w="20rem" onClick={() => wallet.connect("trezor")}>
+                            Connect Trezor
                         </Button>
                     </>
                 ) : (

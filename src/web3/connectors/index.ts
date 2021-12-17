@@ -7,6 +7,7 @@ export const connectors = {
     injected: initInjected,
     walletConnect: initWalletConnect,
     gnosis: initGnosis,
+    trezor: initTrezor,
 } as const
 
 export type ConnectorId = keyof typeof connectors
