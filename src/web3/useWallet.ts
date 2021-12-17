@@ -1,7 +1,7 @@
 import { SafeAppConnector } from "@gnosis.pm/safe-apps-web3-react"
-import { AbstractConnector } from "@web3-react/abstract-connector"
 import { useWeb3React, UnsupportedChainIdError } from "@web3-react/core"
 import { WalletConnectConnector } from "@web3-react/walletconnect-connector"
+import { useRouter } from "next/dist/client/router"
 import { useState, useRef, useMemo, useCallback, useEffect } from "react"
 import { getChain } from "./chains"
 import { connectors, ConnectorId } from "./connectors"
@@ -24,7 +24,7 @@ const useWallet = () => {
     const web3React = useWeb3React()
     const { account, chainId } = web3React
     const activationId = useRef(0)
-    const connector = useRef(null)
+    const router = useRouter()
     // Current chain id
     const chain = useMemo(() => (chainId ? getChain(chainId) : null), [chainId])
 
@@ -54,6 +54,7 @@ const useWallet = () => {
             if (connectorId === "gnosis") {
                 const isSafe = !!(await safeMultisigConnector?.isSafeApp())
                 if (!isSafe) {
+                    await navigator.clipboard.writeText(window.location.href)
                     window.open("https://gnosis-safe.io/app", "_blank")
                     return
                 }
