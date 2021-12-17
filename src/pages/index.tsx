@@ -5,16 +5,17 @@ import Web3 from "web3"
 import OldWeb3 from "oldWeb3"
 import { abi, address } from "../web3/smartContract"
 import useWalletContext from "../web3/useWalletContext"
-import { useQuery } from "react-query"
+import { useQuery, useMutation, useQueryClient } from "react-query"
 const Home: NextPage = () => {
     const wallet = useWalletContext()
     const [name, setName] = useState("")
+
+    const qc = useQueryClient()
 
     const setGreeting = async () => {
         const web3 = new OldWeb3(wallet.ethereum) //wallet.connector === "trezor" ? new OldWeb3(wallet.ethereum) : new Web3(wallet.ethereum)
         const greetingContract = new web3.eth.Contract(abi, address)
         await greetingContract.methods.setGreeting(name).send({ from: wallet.account })
-        refetch()
     }
 
     const getGreeting = async (): Promise<string> => {
@@ -24,9 +25,14 @@ const Home: NextPage = () => {
         return greeting
     }
 
-    const { data, refetch } = useQuery("greet", getGreeting, {
+    const { data } = useQuery("greet", getGreeting, {
         enabled: !!wallet.ethereum,
+        onSuccess: () => {
+            qc.invalidateQueries("greet")
+        },
     })
+
+    const { mutate, isLoading } = useMutation(() => setGreeting())
 
     return (
         <Box h="full" p={8}>
@@ -70,7 +76,7 @@ const Home: NextPage = () => {
                     <>
                         <Text>Current greeting: {data}</Text>
                         <Input value={name} onChange={e => setName(e.target.value)} w="20rem" />
-                        <Button colorScheme="yellow" w="20rem" onClick={setGreeting}>
+                        <Button colorScheme="yellow" w="20rem" onClick={() => mutate()} isLoading={isLoading}>
                             Set Greeting
                         </Button>
                         <Button colorScheme="red" w="20rem" onClick={() => wallet.reset()}>
