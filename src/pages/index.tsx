@@ -16,6 +16,7 @@ const Home: NextPage = () => {
         await greetingContract.methods.setGreeting(name).send({ from: wallet.account })
         refetch()
     }
+
     const getGreeting = async (): Promise<string> => {
         const web3 = wallet.connector === "trezor" ? new OldWeb3(wallet.ethereum) : new Web3(wallet.ethereum)
         const greetingContract = new web3.eth.Contract(abi, address)
@@ -60,6 +61,9 @@ const Home: NextPage = () => {
                         </Button>
                         <Button colorScheme="green" w="20rem" onClick={() => wallet.connect("trezor")}>
                             Connect Trezor
+                        </Button>
+                        <Button colorScheme="yellow" w="20rem" onClick={() => wallet.connect("gnosis")}>
+                            Connect Gnosis
                         </Button>
                     </>
                 ) : (
