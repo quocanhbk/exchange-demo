@@ -13,7 +13,7 @@ const Home: NextPage = () => {
     const qc = useQueryClient()
 
     const setGreeting = async () => {
-        const web3 = new OldWeb3(wallet.ethereum) //wallet.connector === "trezor" ? new OldWeb3(wallet.ethereum) : new Web3(wallet.ethereum)
+        const web3 = wallet.connector === "trezor" ? new OldWeb3(wallet.ethereum) : new Web3(wallet.ethereum)
         const greetingContract = new web3.eth.Contract(abi, address)
         await greetingContract.methods.setGreeting(name).send({ from: wallet.account })
     }
