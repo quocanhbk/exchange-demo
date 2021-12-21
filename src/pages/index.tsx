@@ -3,6 +3,7 @@ import type { NextPage } from "next"
 import { useState } from "react"
 import Web3 from "web3"
 import OldWeb3 from "oldWeb3"
+import { ethers } from "ethers"
 import { abi, address } from "../web3/smartContract"
 import useWalletContext from "../web3/useWalletContext"
 import { useQuery, useMutation, useQueryClient } from "react-query"
@@ -13,15 +14,15 @@ const Home: NextPage = () => {
     const qc = useQueryClient()
 
     const setGreeting = async () => {
-        const web3 = wallet.connector === "trezor" ? new OldWeb3(wallet.ethereum) : new Web3(wallet.ethereum)
-        const greetingContract = new web3.eth.Contract(abi, address)
-        await greetingContract.methods.setGreeting(name).send({ from: wallet.account })
+        const provider = new ethers.providers.Web3Provider(wallet.ethereum)
+        const greetingContract = new ethers.Contract(address, abi, provider)
+        await greetingContract.connect(provider.getSigner()).setGreeting(name)
     }
 
     const getGreeting = async (): Promise<string> => {
-        const web3 = wallet.connector === "trezor" ? new OldWeb3(wallet.ethereum) : new Web3(wallet.ethereum)
-        const greetingContract = new web3.eth.Contract(abi, address)
-        let greeting = await greetingContract.methods.greet().call()
+        const provider = new ethers.providers.Web3Provider(wallet.ethereum)
+        const greetingContract = new ethers.Contract(address, abi, provider)
+        let greeting = await greetingContract.greet()
         return greeting
     }
 
@@ -39,6 +40,9 @@ const Home: NextPage = () => {
             <VStack>
                 <Heading fontSize="xl" mb={4}>
                     Supported chain: Rinkeby
+                </Heading>
+                <Heading fontSize="xl" mb={4}>
+                    Connector: {wallet.connector}
                 </Heading>
                 {wallet.isActive && (
                     <Box>
