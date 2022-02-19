@@ -1,11 +1,11 @@
 import "../styles/globals.css"
 import type { AppProps } from "next/app"
 import { Web3ReactProvider } from "@web3-react/core"
-import { ChakraProvider, Box } from "@chakra-ui/react"
+import { ChakraProvider, Box, Heading } from "@chakra-ui/react"
 import UseWalletProvider from "../web3/Provider"
 import { QueryClient, QueryClientProvider } from "react-query"
 import SafeProvider from "../components/SafeProvider"
-import Head from "next/head"
+import { Account } from "../components/shared"
 const queryClient = new QueryClient()
 
 function MyApp({ Component, pageProps }: AppProps) {
@@ -15,10 +15,13 @@ function MyApp({ Component, pageProps }: AppProps) {
                 <Web3ReactProvider getLibrary={ethereum => ethereum}>
                     <UseWalletProvider>
                         <ChakraProvider>
-                            <Head>
-                                <link rel="manifest" href="/manifest.json" />
-                            </Head>
-                            <Box h="100vh" bg="gray.900" color="whiteAlpha.900">
+                            <Box bg="gray.900" color="whiteAlpha.900" minH="100vh" p={8}>
+                                <Box mb={4}>
+                                    <Heading mb={4}>Supported chain: Rinkeby</Heading>
+                                    <Box borderBottom={"1px"} borderColor="whiteAlpha.200" pb={4}>
+                                        <Account />
+                                    </Box>
+                                </Box>
                                 <Component {...pageProps} />
                             </Box>
                         </ChakraProvider>

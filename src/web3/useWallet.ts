@@ -1,8 +1,8 @@
-import { SafeAppConnector } from "@gnosis.pm/safe-apps-web3-react"
 import { useWeb3React, UnsupportedChainIdError } from "@web3-react/core"
-import { WalletConnectConnector } from "@web3-react/walletconnect-connector"
-import { useRouter } from "next/dist/client/router"
+import { providers } from "ethers"
 import { useState, useRef, useMemo, useCallback, useEffect } from "react"
+import { getMe, loadMessageLogin, loginWithSignature } from "../api"
+import { ContractCaller } from "../contracts"
 import { getChain } from "./chains"
 import { connectors, ConnectorId } from "./connectors"
 import { ChainUnsupportedError } from "./errors"
@@ -13,9 +13,9 @@ import {
     setLastActiveAccount,
     getLastConnector,
     getLastActiveAccount,
+    getToken,
+    setToken,
 } from "./utils"
-
-const safeMultisigConnector = typeof window !== "undefined" ? new SafeAppConnector() : undefined
 
 const useWallet = () => {
     const [connectorName, setConnectorName] = useState<ConnectorId | null>(null)
@@ -24,12 +24,11 @@ const useWallet = () => {
     const web3React = useWeb3React()
     const { account, chainId } = web3React
     const activationId = useRef(0)
-    const router = useRouter()
     // Current chain id
     const chain = useMemo(() => (chainId ? getChain(chainId) : null), [chainId])
+    const scCaller = useRef<ContractCaller | null>(null)
 
     const reset = useCallback(() => {
-        ;(connectors["walletConnect"]().web3ReactConnector as WalletConnectConnector).walletConnectProvider = undefined
         if (web3React.active) {
             web3React.deactivate()
         }
@@ -48,18 +47,25 @@ const useWallet = () => {
         }
     }, [web3React.error])
 
+    useEffect(() => {
+        const login = async () => {
+            if (web3React.library) {
+                scCaller.current = new ContractCaller(web3React.library)
+                const me = await getMe()
+                if (!me) {
+                    const data = await loadMessageLogin(account as string)
+                    const signature = await scCaller.current?.sign(data.message)
+                    const token = await loginWithSignature(account as string, data.time, signature)
+                    setToken(token)
+                }
+            }
+        }
+        login()
+    }, [web3React.library, account])
+
     // connect to wallet
     const connect = useCallback(
         async (connectorId: ConnectorId = "injected") => {
-            if (connectorId === "gnosis") {
-                const isSafe = !!(await safeMultisigConnector?.isSafeApp())
-                if (!isSafe) {
-                    await navigator.clipboard.writeText(window.location.href)
-                    window.open("https://gnosis-safe.io/app", "_blank")
-                    return
-                }
-            }
-
             const id = ++activationId.current
 
             reset()
@@ -85,11 +91,11 @@ const useWallet = () => {
 
                 // save last connector name to login after refresh
                 setLastConnector(connectorId)
+
+                const account = await web3ReactConnector.getAccount()
+
                 // listen to some event
                 if (connectorId === "injected") {
-                    const account = await web3ReactConnector.getAccount()
-
-                    console.log(account)
                     account && setLastActiveAccount(account)
                     web3ReactConnector.getProvider().then(provider => {
                         provider.on("accountsChanged", () => {
@@ -141,7 +147,7 @@ const useWallet = () => {
 
     const wallet = {
         web3React,
-        account: account || null,
+        account: account?.toLowerCase() || null,
         connect,
         connector: connectorName,
         reset,
@@ -150,6 +156,7 @@ const useWallet = () => {
         error,
         isActive: web3React.active,
         ethereum: web3React.library,
+        scCaller,
     }
 
     return wallet

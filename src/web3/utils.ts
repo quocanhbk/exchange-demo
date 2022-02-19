@@ -20,3 +20,11 @@ export const setLastConnector = (connector: string) => {
 export const getLastConnector = (): string | null => {
     return localStorage?.getItem(CONNECTOR_KEY)
 }
+
+export const setToken = (token: string) => {
+    localStorage?.setItem("TOKEN", token)
+}
+
+export const getToken = (): string | null => {
+    return localStorage?.getItem("TOKEN")
+}
