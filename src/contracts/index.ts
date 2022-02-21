@@ -7,7 +7,7 @@ import { Exchange } from "./Exchange"
 
 export const weiToEther = (balance: BigNumberish) => {
     const actualValue = parseFloat(utils.formatEther(balance))
-    return actualValue - (actualValue % 0.00000001)
+    return actualValue
 }
 
 export class ContractCaller {

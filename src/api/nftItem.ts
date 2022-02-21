@@ -1,7 +1,7 @@
 import fetcher from "./fetcher"
 
 export const getNftItems = async (collectionId: string) => {
-    const { data } = await fetcher.get(`/nftitems?take=500&collectionId=${collectionId}`)
+    const { data } = await fetcher.get(`/nftitems?take=1000&collectionId=${collectionId}`)
     return data.data
 }
 

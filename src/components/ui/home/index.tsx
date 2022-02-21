@@ -71,6 +71,7 @@ const HomeUI = () => {
                 <Checkbox ml={8} isChecked={onlyMine} onChange={e => setOnlyMine(e.target.checked)} size="lg">
                     Only see mine
                 </Checkbox>
+                <Text ml="auto">{(collection === "inu" ? inuItems : nekoItems).length} NFT</Text>
             </Flex>
             <Input
                 placeholder="Search"
@@ -83,7 +84,12 @@ const HomeUI = () => {
             <Wrap spacing={4}>
                 {(collection === "inu" ? inuItems : nekoItems)
                     .filter(item => !onlyMine || item.owner === account?.toLowerCase())
-                    .filter(item => !search || item.name?.toLowerCase().includes(search.toLowerCase()))
+                    .filter(
+                        item =>
+                            !search ||
+                            item.name?.toLowerCase().includes(search.toLowerCase()) ||
+                            item.id?.toLowerCase().includes(search.toLowerCase())
+                    )
                     .map((item: any) => (
                         <WrapItem key={item.id}>
                             <NftCard data={item} onClick={() => router.push(`/${item.id}`)} />

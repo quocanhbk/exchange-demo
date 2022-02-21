@@ -1,5 +1,4 @@
 import { useWeb3React, UnsupportedChainIdError } from "@web3-react/core"
-import { providers } from "ethers"
 import { useState, useRef, useMemo, useCallback, useEffect } from "react"
 import { getMe, loadMessageLogin, loginWithSignature } from "../api"
 import { ContractCaller } from "../contracts"
@@ -13,7 +12,6 @@ import {
     setLastActiveAccount,
     getLastConnector,
     getLastActiveAccount,
-    getToken,
     setToken,
 } from "./utils"
 
@@ -52,6 +50,7 @@ const useWallet = () => {
             if (web3React.library) {
                 scCaller.current = new ContractCaller(web3React.library)
                 const me = await getMe()
+                console.log("ME", me)
                 if (!me) {
                     const data = await loadMessageLogin(account as string)
                     const signature = await scCaller.current?.sign(data.message)

@@ -1,10 +1,10 @@
-import { ethers } from "ethers"
+import { ethers, providers } from "ethers"
 import { ERC721_ABI } from "../constant"
 
 class DynamicERC721 {
-    provider: ethers.providers.Provider
+    provider: providers.Web3Provider
 
-    constructor(provider: ethers.providers.Provider) {
+    constructor(provider: providers.Web3Provider) {
         this.provider = provider
     }
 
@@ -25,7 +25,8 @@ class DynamicERC721 {
     }
 
     async setApprovalForAll(contractAddress: string, target: string) {
-        await this.getContract(contractAddress).setApprovalForAll(target, true)
+        const signer = this.provider.getSigner()
+        await this.getContract(contractAddress).connect(signer).setApprovalForAll(target, true)
     }
 }
 

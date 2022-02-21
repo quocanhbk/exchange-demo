@@ -19,6 +19,7 @@ export class Exchange {
 
     public async matchOrders(leftOrder: Order, leftSignature: string, rightOrder: Order, rightSignature) {
         const signer = this.provider.getSigner()
+        console.log("MATCH", leftOrder, leftSignature, rightOrder, rightSignature)
         await this.Exchange.connect(signer).matchOrders(
             orderToStruct(leftOrder),
             leftSignature,

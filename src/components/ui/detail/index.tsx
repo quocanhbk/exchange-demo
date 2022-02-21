@@ -2,11 +2,13 @@ import { Box, Button, Heading, HStack, Text } from "@chakra-ui/react"
 import { useRouter } from "next/dist/client/router"
 import { useState } from "react"
 import { useQuery, useQueryClient } from "react-query"
-import { getListings, getNftItem } from "../../../api"
+import { getListings, getNftItem, getOffers } from "../../../api"
 import { weiToEther } from "../../../contracts"
 import useWalletContext from "../../../web3/useWalletContext"
 import NftCard from "../home/NftCard"
 import ListingCard from "./ListingCard"
+import OfferCard from "./OfferCard"
+import OfferModal from "./OfferModal"
 import SellModal from "./SellModal"
 
 const DetailUI = ({ id }) => {
@@ -18,15 +20,21 @@ const DetailUI = ({ id }) => {
     })
 
     const [isListingCancel, setIsListingCancel] = useState(false)
+
     const { data: listing } = useQuery(["listing", id], () => getListings(id), {
         enabled: !!id,
         onSuccess: data => {
-            console.log("LISTING", data)
             setIsListingCancel(data.status === "Cancelled")
         },
     })
 
+    const { data: offers } = useQuery(["offers", id], () => getOffers(id), {
+        enabled: !!id,
+    })
+
     const [isSelling, setIsSelling] = useState(false)
+
+    const [isOffering, setIsOffering] = useState(false)
 
     const render = () => {
         if (!item) return <Text>Loading...</Text>
@@ -40,6 +48,25 @@ const DetailUI = ({ id }) => {
                         </Button>
                     )}
                 </HStack>
+                <HStack align="flex-start" mt={4} spacing={4}>
+                    {listing && !isListingCancel && <ListingCard data={listing} setIsCancelled={setIsListingCancel} />}
+
+                    {offers && offers.length > 0 && (
+                        <Box>
+                            <Text fontSize="lg" fontWeight="bold" mb={2}>
+                                Offers
+                            </Text>
+                            {offers.map((offer, idx) => (
+                                <OfferCard key={idx} data={offer} owner={item.owner} />
+                            ))}
+                            {wallet.account !== item.owner && (
+                                <Button w="20rem" onClick={() => setIsOffering(true)}>
+                                    Make an offer
+                                </Button>
+                            )}
+                        </Box>
+                    )}
+                </HStack>
             </Box>
         )
     }
@@ -47,10 +74,16 @@ const DetailUI = ({ id }) => {
     return (
         <Box>
             {render()}
-            {listing && !isListingCancel && <ListingCard data={listing} setIsCancelled={setIsListingCancel} />}
+
             <SellModal
                 isOpen={isSelling}
                 onClose={() => setIsSelling(false)}
+                collectionId={id ? id.split(":")[0] : ""}
+                tokenId={id ? id.split(":")[1] : ""}
+            />
+            <OfferModal
+                isOpen={isOffering}
+                onClose={() => setIsOffering(false)}
                 collectionId={id ? id.split(":")[0] : ""}
                 tokenId={id ? id.split(":")[1] : ""}
             />

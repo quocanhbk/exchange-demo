@@ -1,44 +1,41 @@
 import { FormControl, FormLabel, Button, ButtonGroup, HStack, Text } from "@chakra-ui/react"
 import { useState } from "react"
 import { ethers } from "ethers"
-import { createListing, getEncodeDataToSignAPI } from "../../../api"
+import { createListing, createOffer, getEncodeDataToSignAPI } from "../../../api"
 import { EXCHANGE_V2_ADDRESS, TRANSFER_PROXY_ADDRESS, WETH_ADDRESS } from "../../../constant"
-import { genSellAssets, genSellOrder, signOrder } from "../../../helper"
-import { useEthBalance } from "../../../hooks"
+import { genOfferAssets, genOfferOrder, genSellAssets, genSellOrder, signOrder } from "../../../helper"
+import { useEthBalance, useWethBalance } from "../../../hooks"
 import useWalletContext from "../../../web3/useWalletContext"
 import { getToken } from "../../../web3/utils"
 import { ChakraModal, CurrencyInput } from "../../shared"
 import { useMutation, useQueryClient } from "react-query"
 
-const SellModal = ({ isOpen, onClose, collectionId, tokenId }) => {
+const OfferModal = ({ isOpen, onClose, collectionId, tokenId }) => {
     const [price, setPrice] = useState("0")
-    const [currency, setCurrency] = useState("ETH")
     const wallet = useWalletContext()
     const qc = useQueryClient()
 
-    const createSellOrder = async () => {
+    const createSellOffer = async () => {
         // make sure contract is approved to use user's nft
-        const isApproved = await wallet.scCaller.current?.DynamicERC721.isApprovedForAll(
+        const isApproved = wallet.scCaller.current?.DynamicERC721.isApprovedForAll(
             collectionId,
             wallet.account as string,
             TRANSFER_PROXY_ADDRESS
         )
         if (!isApproved) {
-            await wallet.scCaller.current?.DynamicERC721.setApprovalForAll(collectionId, TRANSFER_PROXY_ADDRESS)
+            wallet.scCaller.current?.DynamicERC721.setApprovalForAll(collectionId, wallet.account as string)
         }
 
-        const assets = genSellAssets({
+        const assets = genOfferAssets({
+            makeAddress: WETH_ADDRESS,
             price: ethers.utils.parseEther(price).toString(),
-            tokenAddress: collectionId,
+            takeAddress: collectionId,
             tokenId,
-            tokenType: "ERC721",
-            amount: 1,
-            buyTokenContract: currency === "WETH" ? WETH_ADDRESS : undefined,
         })
 
-        const sellOrder = genSellOrder(wallet.account as string, assets.makeAsset, assets.takeAsset)
+        const offerOrder = genOfferOrder(wallet.account as string, assets.makeAsset, assets.takeAsset)
 
-        const encodedData = await getEncodeDataToSignAPI(sellOrder)
+        const encodedData = await getEncodeDataToSignAPI(offerOrder)
 
         const signature = await signOrder(
             wallet.ethereum,
@@ -46,39 +43,37 @@ const SellModal = ({ isOpen, onClose, collectionId, tokenId }) => {
             { chainId: 4, exchange: EXCHANGE_V2_ADDRESS },
             encodedData
         )
-        sellOrder.signature = signature
+        offerOrder.signature = signature
 
         const token = getToken()
         if (!token) return
 
-        await createListing(sellOrder, token)
+        await createOffer(offerOrder, token)
     }
 
-    const { mutate, isLoading } = useMutation(() => createSellOrder(), {
+    const { mutate, isLoading } = useMutation(() => createSellOffer(), {
         onSuccess: () => {
             qc.invalidateQueries("listing")
             onClose()
         },
     })
 
-    const ethBalance = useEthBalance()
+    const wethBalance = useWethBalance()
 
     return (
-        <ChakraModal title="Create Sell" isOpen={isOpen} onClose={onClose}>
+        <ChakraModal title="Create Offer" isOpen={isOpen} onClose={onClose}>
             <FormControl mb={4}>
                 <FormLabel>Currency</FormLabel>
                 <ButtonGroup isAttached>
-                    <Button variant={currency === "ETH" ? "solid" : "outline"} onClick={() => setCurrency("ETH")}>
+                    <Button variant={"outline"} isDisabled>
                         ETH
                     </Button>
-                    <Button variant={currency === "WETH" ? "solid" : "outline"} onClick={() => setCurrency("WETH")}>
-                        WETH
-                    </Button>
+                    <Button variant={"solid"}>WETH</Button>
                 </ButtonGroup>
             </FormControl>
             <FormControl mb={4}>
                 <FormLabel>Price</FormLabel>
-                <CurrencyInput value={price} setValue={setPrice} maxValue={ethBalance} />
+                <CurrencyInput value={price} setValue={setPrice} maxValue={wethBalance} />
             </FormControl>
             <Text mb={4} fontSize="sm" color="whiteAlpha.500">
                 Start time is now, end time is a day later.
@@ -92,4 +87,4 @@ const SellModal = ({ isOpen, onClose, collectionId, tokenId }) => {
     )
 }
 
-export default SellModal
+export default OfferModal

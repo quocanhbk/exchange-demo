@@ -1,21 +1,20 @@
 import { Box, Button, Flex, Text, VStack } from "@chakra-ui/react"
 import { format } from "date-fns"
 import { useMutation } from "react-query"
-import { TRANSFER_ERC20_PROXY_ADDRESS } from "../../../constant"
+import { TRANSFER_PROXY_ADDRESS } from "../../../constant"
 import { weiToEther } from "../../../contracts"
 import { invertOrder } from "../../../helper"
 import { useChakraToast } from "../../../hooks"
 import { Order } from "../../../types"
 import useWalletContext from "../../../web3/useWalletContext"
 
-const ListingCard = ({ data, setIsCancelled }: { data: Order; setIsCancelled: (value: boolean) => void }) => {
+const OfferCard = ({ data, owner }: { data: Order; owner: string }) => {
     const wallet = useWalletContext()
-
-    const { mutate, isLoading } = useMutation(() => wallet.scCaller.current!.Exchange.cancelOrder(data as Order), {
-        onSuccess: () => setIsCancelled(true),
-    })
-
     const toast = useChakraToast()
+
+    const { mutate: mutateCancelOffer, isLoading: isCancellingOffer } = useMutation(() =>
+        wallet.scCaller.current!.Exchange.cancelOrder(data as Order)
+    )
 
     const handleCancel = () => {
         if (!wallet.isActive) {
@@ -25,34 +24,29 @@ const ListingCard = ({ data, setIsCancelled }: { data: Order; setIsCancelled: (v
             })
             return
         }
-        mutate()
+        mutateCancelOffer()
     }
 
-    const buy = async () => {
+    const accept = async () => {
         const invertedOrder = invertOrder(wallet.account!, data as Order)
-
-        if (data.takeAsset.assetType.assetClass === "ERC20") {
+        if (data.takeAsset.assetType.assetClass === "ERC721") {
             const { contract } = data.takeAsset.assetType
-
-            const allowance = await wallet.scCaller.current?.DynamicERC20.allowance(
+            const isApproved = await wallet.scCaller.current!.DynamicERC721.isApprovedForAll(
                 contract,
-                wallet.account!,
-                TRANSFER_ERC20_PROXY_ADDRESS
+                owner,
+                TRANSFER_PROXY_ADDRESS
             )
-            if (allowance?.lt(data.takeAsset.value)) {
-                const balance = await wallet.scCaller.current!.DynamicERC20.getBalance(contract, wallet.account!)
-                await wallet.scCaller.current?.DynamicERC20.approve(contract, TRANSFER_ERC20_PROXY_ADDRESS, balance)
+            if (!isApproved) {
+                await wallet.scCaller.current!.DynamicERC721.setApprovalForAll(contract, TRANSFER_PROXY_ADDRESS)
             }
         }
-
-        console.log("MATCHING", data, invertedOrder)
 
         await wallet.scCaller.current!.Exchange.matchOrders(data, data.signature, invertedOrder, "0x")
     }
 
-    const { mutate: mutateBuy, isLoading: isBuying } = useMutation(() => buy())
+    const { mutate: mutateAccept, isLoading: isAccepting } = useMutation(() => accept())
 
-    const handleBuy = () => {
+    const handleAccept = () => {
         if (!wallet.isActive) {
             toast({
                 status: "error",
@@ -60,45 +54,42 @@ const ListingCard = ({ data, setIsCancelled }: { data: Order; setIsCancelled: (v
             })
             return
         }
-        mutateBuy()
+        mutateAccept()
     }
 
     return (
-        <Box>
-            <Text fontSize="lg" fontWeight="bold" mb={2}>
-                Listing
-            </Text>
+        <Box mb={4}>
             <VStack align="stretch" w="20rem" rounded="md" p={4} bg="gray.800">
                 <Flex align="center" justify="space-between">
                     <Text fontWeight={"semibold"}>Price</Text>
-                    <Text>{weiToEther(data.takeAsset.value)}</Text>
+                    <Text>{weiToEther(data.makeAsset.value)}</Text>
                 </Flex>
                 <Flex align="center" justify="space-between">
                     <Text fontWeight={"semibold"}>Currency</Text>
-                    <Text>{data.takeAsset.assetType.assetClass}</Text>
+                    <Text>{data.makeAsset.assetType.assetClass}</Text>
                 </Flex>
                 <Flex align="center" justify="space-between">
                     <Text fontWeight={"semibold"}>Start</Text>
-                    <Text>{format(new Date(data.start * 1000), "hh:mm a dd/MM/yyyy")}</Text>
+                    <Text>{format(new Date(data.start), "hh:mm a dd/MM/yyyy")}</Text>
                 </Flex>
                 <Flex align="center" justify="space-between">
                     <Text fontWeight={"semibold"}>End</Text>
-                    <Text>{format(new Date(data.end * 1000), "hh:mm a dd/MM/yyyy")}</Text>
+                    <Text>{format(new Date(data.end), "hh:mm a dd/MM/yyyy")}</Text>
                 </Flex>
                 <Flex align="center" justify="space-between" overflow={"hidden"}>
-                    <Text fontWeight={"semibold"}>Seller</Text>
+                    <Text fontWeight={"semibold"}>Offerer</Text>
                     <Text flex={1} ml={4} isTruncated color="blue.500">
                         {data.maker}
                     </Text>
                 </Flex>
                 {wallet.account === data.maker && (
-                    <Button onClick={handleCancel} isLoading={isLoading}>
+                    <Button onClick={handleCancel} isLoading={isCancellingOffer}>
                         Cancel
                     </Button>
                 )}
-                {wallet.account !== data.maker && (
-                    <Button onClick={handleBuy} isLoading={isBuying}>
-                        Buy
+                {wallet.account === owner && (
+                    <Button onClick={handleAccept} isLoading={isAccepting}>
+                        Accept this offer
                     </Button>
                 )}
             </VStack>
@@ -106,4 +97,4 @@ const ListingCard = ({ data, setIsCancelled }: { data: Order; setIsCancelled: (v
     )
 }
 
-export default ListingCard
+export default OfferCard

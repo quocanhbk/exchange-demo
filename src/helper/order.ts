@@ -41,7 +41,7 @@ interface GenOfferAssetsInput {
     /** ERC-20 contract address */
     makeAddress: string
     tokenId: number
-    price: number
+    price: number | string
     amount?: number
 }
 
@@ -76,7 +76,7 @@ export const genSellOrder = (maker: string, make: Asset, take: Asset): Order => 
         takeAsset: take,
         salt: ethers.utils.id(Math.floor(Math.random() * 1000000).toString()),
         start: Math.floor(Date.now() / 1000),
-        end: Math.floor(Date.now() / 1000) + 100000,
+        end: Math.floor(Date.now() / 1000) + 86400,
         taker: ZERO_ADDRESS,
         orderType: "RARIBLE_V2",
         side: "Ask",
@@ -95,7 +95,7 @@ export const genSellOrder = (maker: string, make: Asset, take: Asset): Order => 
     }
 }
 
-export const genOfferOrder = async (maker: string, make: Asset, take: Asset): Promise<Order> => {
+export const genOfferOrder = (maker: string, make: Asset, take: Asset): Order => {
     return {
         itemId: `${take.assetType.contract}:${take.assetType.tokenId}`,
         maker: maker,
@@ -124,7 +124,6 @@ export const invertOrder = (maker: string, order: Order): Order => {
         taker: ZERO_ADDRESS,
         takeAsset: order.makeAsset,
         makeAsset: order.takeAsset,
-        salt: order.salt,
         signature: "0x",
         data: {
             ...order.data,
