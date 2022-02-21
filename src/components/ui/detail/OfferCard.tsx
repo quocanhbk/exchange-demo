@@ -12,7 +12,7 @@ import useCancelOffer from "./useCancelOffer"
 
 const OfferCard = ({ data, owner }: { data: Order; owner: string }) => {
     const wallet = useWalletContext()
-    const { mutateCancelOffer, isCancellingOffer } = useCancelOffer(data)
+    // const { mutateCancelOffer, isCancellingOffer } = useCancelOffer(data)
     const { mutateAccept, isAccepting, progress } = useAcceptOffer(data, owner)
 
     return (

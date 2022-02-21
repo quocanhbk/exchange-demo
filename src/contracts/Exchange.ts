@@ -12,6 +12,10 @@ export class Exchange {
         this.provider = provider
     }
 
+    public getContract() {
+        return this.Exchange
+    }
+
     public async cancelOrder(order: Order) {
         const signer = this.provider.getSigner()
         await this.Exchange.connect(signer).cancel(orderToStruct(order))

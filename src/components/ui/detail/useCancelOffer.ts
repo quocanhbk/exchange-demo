@@ -18,15 +18,18 @@ const useCancelOffer = (data: Order) => {
             }
             try {
                 await wallet.scCaller.current!.Exchange.cancelOrder(data)
-                resolve("Success")
+                const contract = wallet.scCaller.current!.Exchange.getContract()
+                const filter = contract.filters.Cancel(null, wallet.account)
+                return
+                contract.once(filter, () => {
+                    resolve("Success")
+                })
             } catch (e) {
                 reject(e)
             }
         })
 
-    const { mutate: mutateCancelOffer, isLoading: isCancellingOffer } = useMutation(() =>
-        wallet.scCaller.current!.Exchange.cancelOrder(data as Order)
-    )
+    const { mutate: mutateCancelOffer, isLoading: isCancellingOffer } = useMutation(cancelOffer)
 
     return {
         mutateCancelOffer,
