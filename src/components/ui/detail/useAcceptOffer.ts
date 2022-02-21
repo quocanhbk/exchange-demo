@@ -43,7 +43,7 @@ const useAcceptOffer = (data: Order, owner: string) => {
                 const filter = contract.filters.Transfer(
                     wallet.account,
                     data.maker,
-                    parseInt(data.makeAsset.assetType.tokenId)
+                    parseInt(data.takeAsset.assetType.tokenId)
                 )
                 contract.once(filter, () => {
                     resolve("Success")
@@ -54,7 +54,23 @@ const useAcceptOffer = (data: Order, owner: string) => {
             }
         })
 
-    const { mutate: mutateAccept, isLoading: isAccepting } = useMutation(() => accept())
+    const { mutate: mutateAccept, isLoading: isAccepting } = useMutation(() => accept(), {
+        onSuccess: () => {
+            toast({
+                status: "success",
+                title: "Offer accepted successfully",
+                description: "Please refresh after a few seconds to see the changes",
+                duration: 5000,
+            })
+        },
+        onError: (e: any) => {
+            console.log(e)
+            toast({
+                status: "error",
+                title: e.message || "Offer accept failed",
+            })
+        },
+    })
 
     return {
         mutateAccept,

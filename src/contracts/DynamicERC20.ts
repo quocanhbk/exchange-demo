@@ -1,16 +1,15 @@
-import { BigNumber, ethers } from "ethers"
-import { weiToEther } from "."
-import { ERC721_ABI } from "../constant"
+import { BigNumber, ethers, providers } from "ethers"
+import { ERC20_ABI } from "../constant"
 
 class DynamicERC20 {
-    provider: ethers.providers.Provider
+    provider: providers.Web3Provider
 
-    constructor(provider: ethers.providers.Provider) {
+    constructor(provider: providers.Web3Provider) {
         this.provider = provider
     }
 
     public getContract = (contractAddress: string) => {
-        return new ethers.Contract(contractAddress, ERC721_ABI, this.provider)
+        return new ethers.Contract(contractAddress, ERC20_ABI, this.provider)
     }
 
     async getBalance(contractAddress: string, address: string): Promise<BigNumber> {
@@ -22,7 +21,8 @@ class DynamicERC20 {
     }
 
     async approve(contractAddress: string, targetAddress: string, value: BigNumber): Promise<void> {
-        await this.getContract(contractAddress).approve(targetAddress, value)
+        const signer = this.provider.getSigner()
+        await this.getContract(contractAddress).connect(signer).approve(targetAddress, value)
     }
 }
 

@@ -58,11 +58,12 @@ const DetailUI = ({ id }) => {
                         {offers &&
                             offers.length > 0 &&
                             offers.map((offer, idx) => <OfferCard key={idx} data={offer} owner={item.owner} />)}
-                        {wallet.account !== item.owner && (
-                            <Button w="20rem" onClick={() => setIsOffering(true)}>
-                                Make an offer
-                            </Button>
-                        )}
+                        {wallet.account !== item.owner &&
+                            !(offers && offers.some(offer => offer.maker === wallet.account)) && (
+                                <Button w="20rem" onClick={() => setIsOffering(true)}>
+                                    Make an offer
+                                </Button>
+                            )}
                     </Box>
                 </HStack>
             </Box>

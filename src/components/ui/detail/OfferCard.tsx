@@ -40,11 +40,11 @@ const OfferCard = ({ data, owner }: { data: Order; owner: string }) => {
                         {data.maker}
                     </Text>
                 </Flex>
-                {wallet.account === data.maker && (
+                {/* {wallet.account === data.maker && (
                     <Button onClick={() => mutateCancelOffer()} isLoading={isCancellingOffer}>
                         Cancel
                     </Button>
-                )}
+                )} */}
                 {wallet.account === owner && (
                     <Button onClick={() => mutateAccept()} isLoading={isAccepting} loadingText={progress}>
                         Accept this offer

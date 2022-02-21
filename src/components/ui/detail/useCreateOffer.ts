@@ -2,11 +2,17 @@ import { ethers } from "ethers"
 import { useState } from "react"
 import { useQueryClient, useMutation } from "react-query"
 import { getEncodeDataToSignAPI, createOffer } from "../../../api"
-import { TRANSFER_PROXY_ADDRESS, WETH_ADDRESS, EXCHANGE_V2_ADDRESS } from "../../../constant"
+import {
+    TRANSFER_PROXY_ADDRESS,
+    WETH_ADDRESS,
+    EXCHANGE_V2_ADDRESS,
+    TRANSFER_ERC20_PROXY_ADDRESS,
+} from "../../../constant"
 import { genOfferAssets, genOfferOrder, signOrder } from "../../../helper"
 import useWalletContext from "../../../web3/useWalletContext"
 import { getToken } from "../../../web3/utils"
 import { useChakraToast, useWethBalance } from "../../../hooks"
+import { rejects } from "assert"
 
 const useCreateOffer = (collectionId: string, tokenId: number, onClose: () => void) => {
     const [price, setPrice] = useState("0")
@@ -15,15 +21,37 @@ const useCreateOffer = (collectionId: string, tokenId: number, onClose: () => vo
     const toast = useChakraToast()
     const [progress, setProgress] = useState("Approving")
     const weth = useWethBalance()
+
     const createSellOffer = async () => {
-        // make sure contract is approved to use user's nft
-        const isApproved = wallet.scCaller.current?.DynamicERC721.isApprovedForAll(
-            collectionId,
-            wallet.account as string,
-            TRANSFER_PROXY_ADDRESS
+        const allowance = await wallet.scCaller.current!.DynamicERC20.allowance(
+            WETH_ADDRESS,
+            wallet.account!,
+            TRANSFER_ERC20_PROXY_ADDRESS
         )
-        if (!isApproved) {
-            wallet.scCaller.current?.DynamicERC721.setApprovalForAll(collectionId, wallet.account as string)
+
+        if (allowance?.lt(ethers.utils.parseEther(price))) {
+            if (ethers.utils.parseEther(weth.toString())?.lt(ethers.utils.parseEther(price))) {
+                toast({
+                    status: "error",
+                    title: "Insufficient WETH",
+                })
+                return
+            }
+
+            await wallet.scCaller.current?.DynamicERC20.approve(
+                WETH_ADDRESS,
+                TRANSFER_ERC20_PROXY_ADDRESS,
+                ethers.utils.parseEther(weth.toString())!
+            )
+            const contractObj = wallet.scCaller.current!.DynamicERC20.getContract(WETH_ADDRESS)
+            const filter = contractObj.filters.Approval(
+                wallet.account!,
+                TRANSFER_ERC20_PROXY_ADDRESS,
+                ethers.utils.parseEther(weth.toString())!
+            )
+            contractObj.once(filter, () => {
+                setProgress("Signing")
+            })
         } else setProgress("Signing")
 
         const assets = genOfferAssets({
@@ -34,7 +62,6 @@ const useCreateOffer = (collectionId: string, tokenId: number, onClose: () => vo
         })
 
         const offerOrder = genOfferOrder(wallet.account as string, assets.makeAsset, assets.takeAsset)
-
         const encodedData = await getEncodeDataToSignAPI(offerOrder)
 
         const signature = await signOrder(

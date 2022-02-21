@@ -26,7 +26,7 @@ export class Exchange {
             orderToStruct(rightOrder),
             rightSignature,
             {
-                gasLimit: 500000,
+                gasLimit: 1000000,
                 value: rightOrder.makeAsset.assetType.assetClass === "ERC20" ? 0 : rightOrder.makeAsset.value,
             }
         )

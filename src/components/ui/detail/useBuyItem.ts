@@ -71,6 +71,8 @@ const useBuyItem = (data: Order) => {
             toast({
                 status: "success",
                 title: "Buy successfully!",
+                description: "Please refresh after a few seconds to see the changes",
+                duration: 5000,
             })
             qc.invalidateQueries("listing")
         },
