@@ -7,55 +7,13 @@ import { invertOrder } from "../../../helper"
 import { useChakraToast } from "../../../hooks"
 import { Order } from "../../../types"
 import useWalletContext from "../../../web3/useWalletContext"
+import useAcceptOffer from "./useAcceptOffer"
+import useCancelOffer from "./useCancelOffer"
 
 const OfferCard = ({ data, owner }: { data: Order; owner: string }) => {
     const wallet = useWalletContext()
-    const toast = useChakraToast()
-
-    const { mutate: mutateCancelOffer, isLoading: isCancellingOffer } = useMutation(() =>
-        wallet.scCaller.current!.Exchange.cancelOrder(data as Order)
-    )
-
-    const handleCancel = () => {
-        if (!wallet.isActive) {
-            toast({
-                status: "error",
-                title: "Please connect to a wallet",
-            })
-            return
-        }
-        mutateCancelOffer()
-    }
-
-    const accept = async () => {
-        const invertedOrder = invertOrder(wallet.account!, data as Order)
-        if (data.takeAsset.assetType.assetClass === "ERC721") {
-            const { contract } = data.takeAsset.assetType
-            const isApproved = await wallet.scCaller.current!.DynamicERC721.isApprovedForAll(
-                contract,
-                owner,
-                TRANSFER_PROXY_ADDRESS
-            )
-            if (!isApproved) {
-                await wallet.scCaller.current!.DynamicERC721.setApprovalForAll(contract, TRANSFER_PROXY_ADDRESS)
-            }
-        }
-
-        await wallet.scCaller.current!.Exchange.matchOrders(data, data.signature, invertedOrder, "0x")
-    }
-
-    const { mutate: mutateAccept, isLoading: isAccepting } = useMutation(() => accept())
-
-    const handleAccept = () => {
-        if (!wallet.isActive) {
-            toast({
-                status: "error",
-                title: "Please connect to a wallet",
-            })
-            return
-        }
-        mutateAccept()
-    }
+    const { mutateCancelOffer, isCancellingOffer } = useCancelOffer(data)
+    const { mutateAccept, isAccepting, progress } = useAcceptOffer(data, owner)
 
     return (
         <Box mb={4}>
@@ -83,12 +41,12 @@ const OfferCard = ({ data, owner }: { data: Order; owner: string }) => {
                     </Text>
                 </Flex>
                 {wallet.account === data.maker && (
-                    <Button onClick={handleCancel} isLoading={isCancellingOffer}>
+                    <Button onClick={() => mutateCancelOffer()} isLoading={isCancellingOffer}>
                         Cancel
                     </Button>
                 )}
                 {wallet.account === owner && (
-                    <Button onClick={handleAccept} isLoading={isAccepting}>
+                    <Button onClick={() => mutateAccept()} isLoading={isAccepting} loadingText={progress}>
                         Accept this offer
                     </Button>
                 )}

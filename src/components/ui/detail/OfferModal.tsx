@@ -1,62 +1,14 @@
 import { FormControl, FormLabel, Button, ButtonGroup, HStack, Text } from "@chakra-ui/react"
-import { useState } from "react"
-import { ethers } from "ethers"
-import { createListing, createOffer, getEncodeDataToSignAPI } from "../../../api"
-import { EXCHANGE_V2_ADDRESS, TRANSFER_PROXY_ADDRESS, WETH_ADDRESS } from "../../../constant"
-import { genOfferAssets, genOfferOrder, genSellAssets, genSellOrder, signOrder } from "../../../helper"
-import { useEthBalance, useWethBalance } from "../../../hooks"
-import useWalletContext from "../../../web3/useWalletContext"
-import { getToken } from "../../../web3/utils"
+import { useWethBalance } from "../../../hooks"
 import { ChakraModal, CurrencyInput } from "../../shared"
-import { useMutation, useQueryClient } from "react-query"
+import useCreateOffer from "./useCreateOffer"
 
 const OfferModal = ({ isOpen, onClose, collectionId, tokenId }) => {
-    const [price, setPrice] = useState("0")
-    const wallet = useWalletContext()
-    const qc = useQueryClient()
-
-    const createSellOffer = async () => {
-        // make sure contract is approved to use user's nft
-        const isApproved = wallet.scCaller.current?.DynamicERC721.isApprovedForAll(
-            collectionId,
-            wallet.account as string,
-            TRANSFER_PROXY_ADDRESS
-        )
-        if (!isApproved) {
-            wallet.scCaller.current?.DynamicERC721.setApprovalForAll(collectionId, wallet.account as string)
-        }
-
-        const assets = genOfferAssets({
-            makeAddress: WETH_ADDRESS,
-            price: ethers.utils.parseEther(price).toString(),
-            takeAddress: collectionId,
-            tokenId,
-        })
-
-        const offerOrder = genOfferOrder(wallet.account as string, assets.makeAsset, assets.takeAsset)
-
-        const encodedData = await getEncodeDataToSignAPI(offerOrder)
-
-        const signature = await signOrder(
-            wallet.ethereum,
-            wallet.account as string,
-            { chainId: 4, exchange: EXCHANGE_V2_ADDRESS },
-            encodedData
-        )
-        offerOrder.signature = signature
-
-        const token = getToken()
-        if (!token) return
-
-        await createOffer(offerOrder, token)
-    }
-
-    const { mutate, isLoading } = useMutation(() => createSellOffer(), {
-        onSuccess: () => {
-            qc.invalidateQueries("listing")
-            onClose()
-        },
-    })
+    const { price, setPrice, handleCreateOffer, isCreatingOffer, progress } = useCreateOffer(
+        collectionId,
+        tokenId,
+        onClose
+    )
 
     const wethBalance = useWethBalance()
 
@@ -79,7 +31,13 @@ const OfferModal = ({ isOpen, onClose, collectionId, tokenId }) => {
                 Start time is now, end time is a day later.
             </Text>
             <HStack>
-                <Button w="8rem" onClick={() => mutate()} isLoading={isLoading}>
+                <Button
+                    w="8rem"
+                    onClick={() => handleCreateOffer()}
+                    isLoading={isCreatingOffer}
+                    loadingText={progress}
+                    isDisabled={parseFloat(price) <= 0}
+                >
                     Confirm
                 </Button>
             </HStack>

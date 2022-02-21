@@ -1,67 +1,14 @@
 import { Box, Button, Flex, Text, VStack } from "@chakra-ui/react"
 import { format } from "date-fns"
-import { useMutation } from "react-query"
-import { TRANSFER_ERC20_PROXY_ADDRESS } from "../../../constant"
 import { weiToEther } from "../../../contracts"
-import { invertOrder } from "../../../helper"
-import { useChakraToast } from "../../../hooks"
 import { Order } from "../../../types"
 import useWalletContext from "../../../web3/useWalletContext"
+import useBuyItem from "./useBuyItem"
 
 const ListingCard = ({ data, setIsCancelled }: { data: Order; setIsCancelled: (value: boolean) => void }) => {
     const wallet = useWalletContext()
 
-    const { mutate, isLoading } = useMutation(() => wallet.scCaller.current!.Exchange.cancelOrder(data as Order), {
-        onSuccess: () => setIsCancelled(true),
-    })
-
-    const toast = useChakraToast()
-
-    const handleCancel = () => {
-        if (!wallet.isActive) {
-            toast({
-                status: "error",
-                title: "Please connect to a wallet",
-            })
-            return
-        }
-        mutate()
-    }
-
-    const buy = async () => {
-        const invertedOrder = invertOrder(wallet.account!, data as Order)
-
-        if (data.takeAsset.assetType.assetClass === "ERC20") {
-            const { contract } = data.takeAsset.assetType
-
-            const allowance = await wallet.scCaller.current?.DynamicERC20.allowance(
-                contract,
-                wallet.account!,
-                TRANSFER_ERC20_PROXY_ADDRESS
-            )
-            if (allowance?.lt(data.takeAsset.value)) {
-                const balance = await wallet.scCaller.current!.DynamicERC20.getBalance(contract, wallet.account!)
-                await wallet.scCaller.current?.DynamicERC20.approve(contract, TRANSFER_ERC20_PROXY_ADDRESS, balance)
-            }
-        }
-
-        console.log("MATCHING", data, invertedOrder)
-
-        await wallet.scCaller.current!.Exchange.matchOrders(data, data.signature, invertedOrder, "0x")
-    }
-
-    const { mutate: mutateBuy, isLoading: isBuying } = useMutation(() => buy())
-
-    const handleBuy = () => {
-        if (!wallet.isActive) {
-            toast({
-                status: "error",
-                title: "Please connect to a wallet",
-            })
-            return
-        }
-        mutateBuy()
-    }
+    const { handleBuy, isBuying, progress } = useBuyItem(data)
 
     return (
         <Box>
@@ -91,13 +38,8 @@ const ListingCard = ({ data, setIsCancelled }: { data: Order; setIsCancelled: (v
                         {data.maker}
                     </Text>
                 </Flex>
-                {wallet.account === data.maker && (
-                    <Button onClick={handleCancel} isLoading={isLoading}>
-                        Cancel
-                    </Button>
-                )}
                 {wallet.account !== data.maker && (
-                    <Button onClick={handleBuy} isLoading={isBuying}>
+                    <Button onClick={handleBuy} isLoading={isBuying} loadingText={progress}>
                         Buy
                     </Button>
                 )}

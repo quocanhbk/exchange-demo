@@ -9,7 +9,7 @@ class DynamicERC20 {
         this.provider = provider
     }
 
-    private getContract = (contractAddress: string) => {
+    public getContract = (contractAddress: string) => {
         return new ethers.Contract(contractAddress, ERC721_ABI, this.provider)
     }
 

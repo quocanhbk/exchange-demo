@@ -48,24 +48,22 @@ const DetailUI = ({ id }) => {
                         </Button>
                     )}
                 </HStack>
-                <HStack align="flex-start" mt={4} spacing={4}>
+                <HStack align="flex-start" mt={4} spacing={8}>
                     {listing && !isListingCancel && <ListingCard data={listing} setIsCancelled={setIsListingCancel} />}
 
-                    {offers && offers.length > 0 && (
-                        <Box>
-                            <Text fontSize="lg" fontWeight="bold" mb={2}>
-                                Offers
-                            </Text>
-                            {offers.map((offer, idx) => (
-                                <OfferCard key={idx} data={offer} owner={item.owner} />
-                            ))}
-                            {wallet.account !== item.owner && (
-                                <Button w="20rem" onClick={() => setIsOffering(true)}>
-                                    Make an offer
-                                </Button>
-                            )}
-                        </Box>
-                    )}
+                    <Box>
+                        <Text fontSize="lg" fontWeight="bold" mb={2}>
+                            Offers
+                        </Text>
+                        {offers &&
+                            offers.length > 0 &&
+                            offers.map((offer, idx) => <OfferCard key={idx} data={offer} owner={item.owner} />)}
+                        {wallet.account !== item.owner && (
+                            <Button w="20rem" onClick={() => setIsOffering(true)}>
+                                Make an offer
+                            </Button>
+                        )}
+                    </Box>
                 </HStack>
             </Box>
         )

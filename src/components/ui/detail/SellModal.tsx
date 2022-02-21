@@ -1,66 +1,11 @@
 import { FormControl, FormLabel, Button, ButtonGroup, HStack, Text } from "@chakra-ui/react"
-import { useState } from "react"
-import { ethers } from "ethers"
-import { createListing, getEncodeDataToSignAPI } from "../../../api"
-import { EXCHANGE_V2_ADDRESS, TRANSFER_PROXY_ADDRESS, WETH_ADDRESS } from "../../../constant"
-import { genSellAssets, genSellOrder, signOrder } from "../../../helper"
 import { useEthBalance } from "../../../hooks"
-import useWalletContext from "../../../web3/useWalletContext"
-import { getToken } from "../../../web3/utils"
 import { ChakraModal, CurrencyInput } from "../../shared"
-import { useMutation, useQueryClient } from "react-query"
+import useCreateListing from "./useCreateListing"
 
 const SellModal = ({ isOpen, onClose, collectionId, tokenId }) => {
-    const [price, setPrice] = useState("0")
-    const [currency, setCurrency] = useState("ETH")
-    const wallet = useWalletContext()
-    const qc = useQueryClient()
-
-    const createSellOrder = async () => {
-        // make sure contract is approved to use user's nft
-        const isApproved = await wallet.scCaller.current?.DynamicERC721.isApprovedForAll(
-            collectionId,
-            wallet.account as string,
-            TRANSFER_PROXY_ADDRESS
-        )
-        if (!isApproved) {
-            await wallet.scCaller.current?.DynamicERC721.setApprovalForAll(collectionId, TRANSFER_PROXY_ADDRESS)
-        }
-
-        const assets = genSellAssets({
-            price: ethers.utils.parseEther(price).toString(),
-            tokenAddress: collectionId,
-            tokenId,
-            tokenType: "ERC721",
-            amount: 1,
-            buyTokenContract: currency === "WETH" ? WETH_ADDRESS : undefined,
-        })
-
-        const sellOrder = genSellOrder(wallet.account as string, assets.makeAsset, assets.takeAsset)
-
-        const encodedData = await getEncodeDataToSignAPI(sellOrder)
-
-        const signature = await signOrder(
-            wallet.ethereum,
-            wallet.account as string,
-            { chainId: 4, exchange: EXCHANGE_V2_ADDRESS },
-            encodedData
-        )
-        sellOrder.signature = signature
-
-        const token = getToken()
-        if (!token) return
-
-        await createListing(sellOrder, token)
-    }
-
-    const { mutate, isLoading } = useMutation(() => createSellOrder(), {
-        onSuccess: () => {
-            qc.invalidateQueries("listing")
-            onClose()
-        },
-    })
-
+    const { currency, setCurrency, price, setPrice, mutateCreateListing, isCreatingListing, progress } =
+        useCreateListing(collectionId, tokenId, onClose)
     const ethBalance = useEthBalance()
 
     return (
@@ -84,7 +29,12 @@ const SellModal = ({ isOpen, onClose, collectionId, tokenId }) => {
                 Start time is now, end time is a day later.
             </Text>
             <HStack>
-                <Button w="8rem" onClick={() => mutate()} isLoading={isLoading}>
+                <Button
+                    w="8rem"
+                    onClick={() => mutateCreateListing()}
+                    isLoading={isCreatingListing}
+                    loadingText={progress}
+                >
                     Confirm
                 </Button>
             </HStack>

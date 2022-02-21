@@ -1,10 +1,10 @@
 import { ethers } from "ethers"
 import { ZERO_ADDRESS } from "../constant"
-import { Asset, Order } from "../types"
+import { Asset, AssetClass, Order } from "../types"
 
 interface GenSellAssetsInput {
     tokenAddress: string
-    tokenType: "ERC721" | "ERC1155"
+    tokenType: AssetClass
     tokenId: number
     price: string
     /** The ERC-20 token address to buy. If undefined, it will be ETH */
@@ -68,13 +68,13 @@ export const genOfferAssets = (
     },
 })
 
-export const genSellOrder = (maker: string, make: Asset, take: Asset): Order => {
+export const genSellOrder = (maker: string, make: Asset, take: Asset, salt?: string): Order => {
     return {
         itemId: `${make.assetType.contract}:${make.assetType.tokenId}`,
         maker: maker,
         makeAsset: make,
         takeAsset: take,
-        salt: ethers.utils.id(Math.floor(Math.random() * 1000000).toString()),
+        salt: salt || ethers.utils.id(Math.floor(Math.random() * 1000000).toString()),
         start: Math.floor(Date.now() / 1000),
         end: Math.floor(Date.now() / 1000) + 86400,
         taker: ZERO_ADDRESS,
