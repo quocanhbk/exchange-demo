@@ -1,14 +1,19 @@
 import { Box, Button, Flex, Text, VStack } from "@chakra-ui/react"
 import { format } from "date-fns"
+import { useState } from "react"
 import { weiToEther } from "../../../contracts"
 import { Order } from "../../../types"
 import useWalletContext from "../../../web3/useWalletContext"
+import UpdateSellModal from "./UpdateSellModal"
 import useBuyItem from "./useBuyItem"
+import useCancelListing from "./useCancelListing"
 
-const ListingCard = ({ data, setIsCancelled }: { data: Order; setIsCancelled: (value: boolean) => void }) => {
+const ListingCard = ({ data }: { data: Order; setIsCancelled: (value: boolean) => void }) => {
     const wallet = useWalletContext()
+    const { isBuying, progress, mutateBuy } = useBuyItem(data)
+    const { mutateCancelListing, isCancellingListing } = useCancelListing(data)
 
-    const { handleBuy, isBuying, progress } = useBuyItem(data)
+    const [isUpdating, setIsUpdating] = useState(false)
 
     return (
         <Box>
@@ -26,11 +31,11 @@ const ListingCard = ({ data, setIsCancelled }: { data: Order; setIsCancelled: (v
                 </Flex>
                 <Flex align="center" justify="space-between">
                     <Text fontWeight={"semibold"}>Start</Text>
-                    <Text>{format(new Date(data.start * 1000), "hh:mm a dd/MM/yyyy")}</Text>
+                    <Text>{format(new Date(data.start), "hh:mm a dd/MM/yyyy")}</Text>
                 </Flex>
                 <Flex align="center" justify="space-between">
                     <Text fontWeight={"semibold"}>End</Text>
-                    <Text>{format(new Date(data.end * 1000), "hh:mm a dd/MM/yyyy")}</Text>
+                    <Text>{format(new Date(data.end), "hh:mm a dd/MM/yyyy")}</Text>
                 </Flex>
                 <Flex align="center" justify="space-between" overflow={"hidden"}>
                     <Text fontWeight={"semibold"}>Seller</Text>
@@ -39,9 +44,24 @@ const ListingCard = ({ data, setIsCancelled }: { data: Order; setIsCancelled: (v
                     </Text>
                 </Flex>
                 {wallet.account !== data.maker && (
-                    <Button onClick={handleBuy} isLoading={isBuying} loadingText={progress}>
+                    <Button onClick={() => mutateBuy()} isLoading={isBuying} loadingText={progress}>
                         Buy
                     </Button>
+                )}
+                {wallet.account === data.maker && (
+                    <>
+                        <Button variant="outline" onClick={() => setIsUpdating(true)}>
+                            Update
+                        </Button>
+                        <Button
+                            onClick={() => mutateCancelListing()}
+                            isLoading={isCancellingListing}
+                            loadingText="Cancelling"
+                        >
+                            Cancel
+                        </Button>
+                        <UpdateSellModal isOpen={isUpdating} onClose={() => setIsUpdating(false)} order={data} />
+                    </>
                 )}
             </VStack>
         </Box>

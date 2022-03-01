@@ -2,27 +2,23 @@ import { ethers } from "ethers"
 import { useState } from "react"
 import { useQueryClient, useMutation } from "react-query"
 import { getEncodeDataToSignAPI, createOffer } from "../../../api"
-import {
-    TRANSFER_PROXY_ADDRESS,
-    WETH_ADDRESS,
-    EXCHANGE_V2_ADDRESS,
-    TRANSFER_ERC20_PROXY_ADDRESS,
-} from "../../../constant"
-import { genOfferAssets, genOfferOrder, signOrder } from "../../../helper"
+import { WETH_ADDRESS, EXCHANGE_V2_ADDRESS, TRANSFER_ERC20_PROXY_ADDRESS } from "../../../constant"
+import { genOfferOrder, signOrder } from "../../../helper"
 import useWalletContext from "../../../web3/useWalletContext"
 import { getToken } from "../../../web3/utils"
 import { useChakraToast, useWethBalance } from "../../../hooks"
-import { rejects } from "assert"
 
 const useCreateOffer = (collectionId: string, tokenId: number, onClose: () => void) => {
     const [price, setPrice] = useState("0")
     const wallet = useWalletContext()
     const qc = useQueryClient()
     const toast = useChakraToast()
-    const [progress, setProgress] = useState("Approving")
+    const [progress, setProgress] = useState<null | string>(null)
     const weth = useWethBalance()
 
     const createSellOffer = async () => {
+        if (!wallet.isActive) throw new Error("Please connect to a wallet")
+
         const allowance = await wallet.scCaller.current!.DynamicERC20.allowance(
             WETH_ADDRESS,
             wallet.account!,
@@ -30,7 +26,7 @@ const useCreateOffer = (collectionId: string, tokenId: number, onClose: () => vo
         )
 
         if (allowance?.lt(ethers.utils.parseEther(price))) {
-            if (ethers.utils.parseEther(weth.toString())?.lt(ethers.utils.parseEther(price))) {
+            if (weth.lt(ethers.utils.parseEther(price))) {
                 toast({
                     status: "error",
                     title: "Insufficient WETH",
@@ -38,30 +34,26 @@ const useCreateOffer = (collectionId: string, tokenId: number, onClose: () => vo
                 return
             }
 
+            setProgress("Approving")
             await wallet.scCaller.current?.DynamicERC20.approve(
                 WETH_ADDRESS,
                 TRANSFER_ERC20_PROXY_ADDRESS,
                 ethers.utils.parseEther(weth.toString())!
             )
-            const contractObj = wallet.scCaller.current!.DynamicERC20.getContract(WETH_ADDRESS)
-            const filter = contractObj.filters.Approval(
-                wallet.account!,
-                TRANSFER_ERC20_PROXY_ADDRESS,
-                ethers.utils.parseEther(weth.toString())!
-            )
-            contractObj.once(filter, () => {
-                setProgress("Signing")
-            })
-        } else setProgress("Signing")
+        }
 
-        const assets = genOfferAssets({
+        setProgress("Signing")
+
+        const offerOrder = genOfferOrder({
+            maker: wallet.account!,
             makeAddress: WETH_ADDRESS,
             price: ethers.utils.parseEther(price).toString(),
             takeAddress: collectionId,
             tokenId,
+            start: Math.floor(Date.now() / 1000),
+            end: Math.floor(Date.now() / 1000) + 86400,
         })
 
-        const offerOrder = genOfferOrder(wallet.account as string, assets.makeAsset, assets.takeAsset)
         const encodedData = await getEncodeDataToSignAPI(offerOrder)
 
         const signature = await signOrder(
@@ -71,6 +63,7 @@ const useCreateOffer = (collectionId: string, tokenId: number, onClose: () => vo
             encodedData
         )
         offerOrder.signature = signature
+
         setProgress("Creating")
         const token = getToken()
         if (!token) return
@@ -80,7 +73,7 @@ const useCreateOffer = (collectionId: string, tokenId: number, onClose: () => vo
 
     const { mutate: mutateCreateOffer, isLoading: isCreatingOffer } = useMutation(() => createSellOffer(), {
         onSuccess: () => {
-            qc.invalidateQueries("offers")
+            qc.invalidateQueries(["nft-items", `${collectionId}:${tokenId}`])
             onClose()
             toast({
                 status: "success",
@@ -94,32 +87,23 @@ const useCreateOffer = (collectionId: string, tokenId: number, onClose: () => vo
                 title: e.message || "Create offer failed!",
             })
         },
+        onSettled: () => {
+            setProgress(null)
+        },
     })
 
-    const handleCreateOffer = () => {
-        if (!wallet.isActive) {
-            toast({
-                status: "error",
-                title: "Please connect to a wallet",
-            })
-            return
-        }
-        if (parseFloat(price) > weth) {
-            toast({
-                status: "error",
-                title: "Not enough WETH",
-            })
-            return
-        }
-        mutateCreateOffer()
+    const handleClose = () => {
+        if (!!progress) return
+        onClose()
     }
 
     return {
         price,
         setPrice,
-        handleCreateOffer,
+        mutateCreateOffer,
         isCreatingOffer,
         progress,
+        handleClose,
     }
 }
 

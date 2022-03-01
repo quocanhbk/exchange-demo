@@ -119,7 +119,7 @@ export const EXCHANGEV2_ABI = [
                 type: "bytes32",
             },
             {
-                indexed: false,
+                indexed: true,
                 internalType: "address",
                 name: "maker",
                 type: "address",
@@ -180,13 +180,13 @@ export const EXCHANGEV2_ABI = [
                 type: "bytes32",
             },
             {
-                indexed: false,
+                indexed: true,
                 internalType: "address",
                 name: "leftMaker",
                 type: "address",
             },
             {
-                indexed: false,
+                indexed: true,
                 internalType: "address",
                 name: "rightMaker",
                 type: "address",

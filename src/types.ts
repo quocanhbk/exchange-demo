@@ -48,7 +48,7 @@ export type AssetType = {
 export type Auction = {
     id?: string
     contract: string
-    tokenId: string
+    tokenId: string | number
     itemId?: string
     owner: string
     currency: string

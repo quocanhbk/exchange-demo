@@ -2,40 +2,13 @@ import { ethers } from "ethers"
 import { ZERO_ADDRESS } from "../constant"
 import { Asset, AssetClass, Order } from "../types"
 
-interface GenSellAssetsInput {
-    tokenAddress: string
-    tokenType: AssetClass
-    tokenId: number
-    price: string
-    /** The ERC-20 token address to buy. If undefined, it will be ETH */
-    buyTokenContract?: string
-    amount?: number
+interface OrderTime {
+    start: number
+    end: number
 }
 
-export const genSellAssets = (
-    input: GenSellAssetsInput
-): {
-    makeAsset: Asset
-    takeAsset: Asset
-} => ({
-    makeAsset: {
-        assetType: {
-            assetClass: input.tokenType,
-            contract: input.tokenAddress,
-            tokenId: input.tokenId,
-        },
-        value: input.amount || 1,
-    },
-    takeAsset: {
-        assetType: {
-            assetClass: input.buyTokenContract ? "ERC20" : "ETH",
-            contract: input.buyTokenContract,
-        },
-        value: input.price,
-    },
-})
-
-interface GenOfferAssetsInput {
+interface GenOfferAssetsInput extends OrderTime {
+    maker: string
     /** ERC-721 or ERC-1155 contract address */
     takeAddress: string
     /** ERC-20 contract address */
@@ -45,39 +18,77 @@ interface GenOfferAssetsInput {
     amount?: number
 }
 
-export const genOfferAssets = (
-    input: GenOfferAssetsInput
-): {
-    makeAsset: Asset
-    takeAsset: Asset
-} => ({
-    makeAsset: {
-        assetType: {
-            assetClass: "ERC20",
-            contract: input.makeAddress,
-        },
-        value: input.price,
-    },
-    takeAsset: {
-        assetType: {
-            assetClass: input.amount ? "ERC1155" : "ERC721",
-            contract: input.takeAddress,
-            tokenId: input.tokenId,
-        },
-        value: input.amount || 1,
-    },
-})
-
-export const genSellOrder = (maker: string, make: Asset, take: Asset, salt?: string): Order => {
+export const genOfferOrder = (input: GenOfferAssetsInput): Order => {
     return {
-        itemId: `${make.assetType.contract}:${make.assetType.tokenId}`,
-        maker: maker,
-        makeAsset: make,
-        takeAsset: take,
-        salt: salt || ethers.utils.id(Math.floor(Math.random() * 1000000).toString()),
-        start: Math.floor(Date.now() / 1000),
-        end: Math.floor(Date.now() / 1000) + 86400,
+        itemId: `${input.takeAddress}:${input.tokenId}`,
+        maker: input.maker,
         taker: ZERO_ADDRESS,
+        makeAsset: {
+            assetType: {
+                assetClass: "ERC20",
+                contract: input.makeAddress,
+            },
+            value: input.price,
+        },
+        takeAsset: {
+            assetType: {
+                assetClass: input.amount ? "ERC1155" : "ERC721",
+                contract: input.takeAddress,
+                tokenId: input.tokenId,
+            },
+            value: input.amount || 1,
+        },
+        salt: ethers.utils.id(Math.floor(Math.random() * 1000000).toString()),
+        start: input.start,
+        end: input.end,
+        signature: "0x",
+        orderType: "RARIBLE_V2",
+        side: "Offer",
+        data: {
+            dataType: "DATA_V2_TYPE",
+            payouts: [],
+            originFees: [],
+            isMakeFill: true,
+        },
+    }
+}
+
+interface GenSellAssetsInput extends OrderTime {
+    maker: string
+    tokenAddress: string
+    tokenType: AssetClass
+    tokenId: number
+    price: string
+    /** The ERC-20 token address to buy. If undefined, it will be ETH */
+    buyTokenContract?: string
+    amount?: number
+    salt?: string
+    hash?: string
+}
+
+export const genSellOrder = (input: GenSellAssetsInput): Order => {
+    return {
+        itemId: `${input.tokenAddress}:${input.tokenId}`,
+        maker: input.maker,
+        taker: ZERO_ADDRESS,
+        makeAsset: {
+            assetType: {
+                assetClass: input.tokenType,
+                contract: input.tokenAddress,
+                tokenId: input.tokenId,
+            },
+            value: input.amount || 1,
+        },
+        takeAsset: {
+            assetType: {
+                assetClass: input.buyTokenContract ? "ERC20" : "ETH",
+                contract: input.buyTokenContract,
+            },
+            value: input.price,
+        },
+        salt: input.salt || ethers.utils.id(Math.floor(Math.random() * 1000000).toString()),
+        start: input.start,
+        end: input.end,
         orderType: "RARIBLE_V2",
         side: "Ask",
         signature: "0x",
@@ -92,28 +103,7 @@ export const genSellOrder = (maker: string, make: Asset, take: Asset, salt?: str
             ],
             isMakeFill: true,
         },
-    }
-}
-
-export const genOfferOrder = (maker: string, make: Asset, take: Asset): Order => {
-    return {
-        itemId: `${take.assetType.contract}:${take.assetType.tokenId}`,
-        maker: maker,
-        makeAsset: make,
-        takeAsset: take,
-        salt: ethers.utils.id(Math.floor(Math.random() * 1000000).toString()),
-        start: Math.floor(Date.now() / 1000),
-        end: Math.floor(Date.now() / 1000) + 100000,
-        taker: ZERO_ADDRESS,
-        signature: "0x",
-        orderType: "RARIBLE_V2",
-        side: "Offer",
-        data: {
-            dataType: "DATA_V2_TYPE",
-            payouts: [],
-            originFees: [],
-            isMakeFill: true,
-        },
+        hash: input.hash,
     }
 }
 
@@ -128,9 +118,25 @@ export const invertOrder = (maker: string, order: Order): Order => {
         data: {
             ...order.data,
             payouts: [],
-            originFees: [], //order.side === "Ask" ? [] : [{ account: "0x67a81B7dD7238DFcD2f3c2EB6fBBD50dBF20444F", value: 250 }],
+            originFees: [],
             isMakeFill: !order.data.isMakeFill,
         },
     }
     return inverted
+}
+
+export const updateSellOrder = (data: Order, price: string): Order => {
+    const sellOrder = genSellOrder({
+        maker: data.maker,
+        price: ethers.utils.parseEther(price).toString(),
+        tokenId: data.makeAsset.assetType.tokenId,
+        tokenType: "ERC721",
+        tokenAddress: data.makeAsset.assetType.contract,
+        start: data.start / 1000,
+        end: data.end / 1000,
+        salt: data.salt,
+        hash: data.hash,
+    })
+
+    return sellOrder
 }

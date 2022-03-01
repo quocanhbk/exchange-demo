@@ -1,4 +1,5 @@
 import { Contract, ethers, providers } from "ethers"
+
 import { EXCHANGEV2_ABI } from "../constant"
 import { orderToStruct } from "../helper"
 import { Order } from "../types"
@@ -7,8 +8,8 @@ export class Exchange {
     Exchange: Contract
     provider: providers.Web3Provider
 
-    constructor(provider: ethers.providers.Web3Provider) {
-        this.Exchange = new ethers.Contract("0x21E77f475E8B4eA1500A083905CD642044C4eF7A", EXCHANGEV2_ABI, provider)
+    constructor(provider: providers.Web3Provider, contractAddress: string) {
+        this.Exchange = new ethers.Contract(contractAddress, EXCHANGEV2_ABI, provider)
         this.provider = provider
     }
 
@@ -18,13 +19,14 @@ export class Exchange {
 
     public async cancelOrder(order: Order) {
         const signer = this.provider.getSigner()
-        await this.Exchange.connect(signer).cancel(orderToStruct(order))
+        const tx = await this.Exchange.connect(signer).cancel(orderToStruct(order))
+        await tx.wait()
     }
 
-    public async matchOrders(leftOrder: Order, leftSignature: string, rightOrder: Order, rightSignature) {
+    public async matchOrders(leftOrder: Order, leftSignature: string, rightOrder: Order, rightSignature: string) {
+        console.log("MATCH", leftOrder, rightOrder)
         const signer = this.provider.getSigner()
-        console.log("MATCH", leftOrder, leftSignature, rightOrder, rightSignature)
-        await this.Exchange.connect(signer).matchOrders(
+        const tx = await this.Exchange.connect(signer).matchOrders(
             orderToStruct(leftOrder),
             leftSignature,
             orderToStruct(rightOrder),
@@ -34,5 +36,7 @@ export class Exchange {
                 value: rightOrder.makeAsset.assetType.assetClass === "ERC20" ? 0 : rightOrder.makeAsset.value,
             }
         )
+
+        await tx.wait()
     }
 }

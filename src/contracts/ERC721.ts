@@ -1,15 +1,14 @@
-import { Contract, ethers } from "ethers"
+import { Contract, providers } from "ethers"
 import { ERC721_ABI } from "../constant"
+import { race } from "../helper"
 
 class ERC721 {
+    provider: providers.Web3Provider
     contract: Contract
 
-    constructor(provider: ethers.providers.Provider, contractAddress: string) {
-        this.contract = new ethers.Contract(
-            contractAddress,
-            ERC721_ABI,
-            provider
-        )
+    constructor(provider: providers.Web3Provider, contractAddress: string) {
+        this.provider = provider
+        this.contract = new Contract(contractAddress, ERC721_ABI, provider)
     }
 
     async balanceOf(address: string): Promise<number> {
@@ -20,15 +19,14 @@ class ERC721 {
         return await this.contract.tokenOfOwnerByIndex(address, index)
     }
 
-    async isApprovedForAll(
-        ownerAddress: string,
-        targetAddress: string
-    ): Promise<boolean> {
+    async isApprovedForAll(ownerAddress: string, targetAddress: string): Promise<boolean> {
         return await this.contract.isApprovedForAll(ownerAddress, targetAddress)
     }
 
     async setApprovalForAll(targetAddress: string) {
-        await this.contract.setApprovalForAll(targetAddress, true)
+        const signer = this.provider.getSigner()
+        const tx = this.contract.connect(signer).setApprovalForAll(targetAddress, true)
+        await tx.wait()
     }
 }
 

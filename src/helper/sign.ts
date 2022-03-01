@@ -1,8 +1,12 @@
 import { Address, keccak256 } from "ethereumjs-util"
-import { ethers } from "ethers"
-import { AbiCoder } from "ethers/lib/utils"
-import { CONTRACT_TOKEN_ID, DATA_V2_TYPE, ERC1155_LAZY_TYPE, ERC721_LAZY_TYPE, ZERO_ADDRESS } from "../constant"
-import { EIP712_DOMAIN_TEMPLATE, EIP712_ORDER_TYPE, EIP712_ORDER_TYPES } from "../constant/eip712"
+import {
+    CONTRACT_TOKEN_ID,
+    DATA_V2_TYPE,
+    EIP712_DOMAIN_TEMPLATE,
+    EIP712_ORDER_TYPE,
+    EIP712_ORDER_TYPES,
+    ZERO_ADDRESS,
+} from "../constant"
 import { Asset, AssetType, Order } from "../types"
 import Web3 from "web3"
 type Binary = string & {

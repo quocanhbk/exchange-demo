@@ -1,20 +1,24 @@
-import { useState } from "react"
 import { useMutation } from "react-query"
 import { useChakraToast } from "../../../hooks"
 import { Order } from "../../../types"
 import useWalletContext from "../../../web3/useWalletContext"
 
-const useCancelOffer = (data: Order) => {
+const useCancelListing = (data: Order) => {
     const wallet = useWalletContext()
     const toast = useChakraToast()
-    const cancelOffer = async () => {
+
+    const cancelListing = async () => {
         if (!wallet.isActive) throw new Error("Please connect to a wallet")
         await wallet.scCaller.current!.Exchange.cancelOrder(data)
     }
 
-    const { mutate: mutateCancelOffer, isLoading: isCancellingOffer } = useMutation(cancelOffer, {
+    const { mutate: mutateCancelListing, isLoading: isCancellingListing } = useMutation(cancelListing, {
         onSuccess: () => {
-            toast({ status: "success", title: "Offer cancelled" })
+            toast({
+                status: "success",
+                title: "Offer cancelled",
+                description: "Please refresh after a few seconds to see the changes",
+            })
         },
         onError: (e: any) => {
             toast({ status: "error", title: e.message })
@@ -22,9 +26,9 @@ const useCancelOffer = (data: Order) => {
     })
 
     return {
-        mutateCancelOffer,
-        isCancellingOffer,
+        mutateCancelListing,
+        isCancellingListing,
     }
 }
 
-export default useCancelOffer
+export default useCancelListing

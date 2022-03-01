@@ -7,7 +7,7 @@ export const useChakraToast = () => {
         toast({
             ...options,
             position: "bottom",
-            duration: options.duration || 2500,
+            duration: options.duration || 5000,
             isClosable: true,
             variant: "subtle",
         })

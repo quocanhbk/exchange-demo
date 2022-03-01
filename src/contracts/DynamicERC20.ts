@@ -1,4 +1,5 @@
 import { BigNumber, ethers, providers } from "ethers"
+
 import { ERC20_ABI } from "../constant"
 
 class DynamicERC20 {
@@ -22,7 +23,9 @@ class DynamicERC20 {
 
     async approve(contractAddress: string, targetAddress: string, value: BigNumber): Promise<void> {
         const signer = this.provider.getSigner()
-        await this.getContract(contractAddress).connect(signer).approve(targetAddress, value)
+        const contract = this.getContract(contractAddress)
+        const tx = contract.connect(signer).approve(targetAddress, value)
+        await tx.wait()
     }
 }
 

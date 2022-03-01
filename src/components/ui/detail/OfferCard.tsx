@@ -1,10 +1,6 @@
 import { Box, Button, Flex, Text, VStack } from "@chakra-ui/react"
 import { format } from "date-fns"
-import { useMutation } from "react-query"
-import { TRANSFER_PROXY_ADDRESS } from "../../../constant"
 import { weiToEther } from "../../../contracts"
-import { invertOrder } from "../../../helper"
-import { useChakraToast } from "../../../hooks"
 import { Order } from "../../../types"
 import useWalletContext from "../../../web3/useWalletContext"
 import useAcceptOffer from "./useAcceptOffer"
@@ -12,7 +8,7 @@ import useCancelOffer from "./useCancelOffer"
 
 const OfferCard = ({ data, owner }: { data: Order; owner: string }) => {
     const wallet = useWalletContext()
-    // const { mutateCancelOffer, isCancellingOffer } = useCancelOffer(data)
+    const { mutateCancelOffer, isCancellingOffer } = useCancelOffer(data)
     const { mutateAccept, isAccepting, progress } = useAcceptOffer(data, owner)
 
     return (
@@ -40,11 +36,11 @@ const OfferCard = ({ data, owner }: { data: Order; owner: string }) => {
                         {data.maker}
                     </Text>
                 </Flex>
-                {/* {wallet.account === data.maker && (
+                {wallet.account === data.maker && (
                     <Button onClick={() => mutateCancelOffer()} isLoading={isCancellingOffer}>
                         Cancel
                     </Button>
-                )} */}
+                )}
                 {wallet.account === owner && (
                     <Button onClick={() => mutateAccept()} isLoading={isAccepting} loadingText={progress}>
                         Accept this offer

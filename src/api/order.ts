@@ -1,5 +1,4 @@
-import { ethers } from "ethers"
-import { Order, AssetType } from "../types"
+import { Order } from "../types"
 import fetcher from "./fetcher"
 
 export const createListing = async (order: Order, token: string) => {
@@ -36,9 +35,13 @@ export const getEncodeDataToSignAPI = async (order: Order) => {
     return data
 }
 
-export const getListings = async (itemId: string) => {
+export const getListing = async (itemId: string): Promise<Order> => {
     const { data } = await fetcher.get(`/order/ask/${itemId}`)
-    return data
+    return {
+        ...data,
+        start: data.start / 1000,
+        end: data.end / 1000,
+    }
 }
 
 export const getOffers = async (itemId: string) => {

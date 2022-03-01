@@ -2,28 +2,26 @@ import { FormControl, FormLabel, Button, ButtonGroup, HStack, Text } from "@chak
 import { weiToEther } from "../../../contracts"
 import { useEthBalance } from "../../../hooks"
 import { ChakraModal, CurrencyInput } from "../../shared"
-import useCreateListing from "./useCreateListing"
+import useCreateAuction from "./useCreateAuction"
 
-const SellModal = ({ isOpen, onClose, collectionId, tokenId }) => {
-    const { currency, setCurrency, price, setPrice, mutateCreateListing, isCreatingListing, progress, handleClose } =
-        useCreateListing(collectionId, tokenId, onClose)
+const CreateAuctionModal = ({ isOpen, onClose, collectionId, tokenId }) => {
+    const { mutateCreateAuction, isCreatingAuction, handleClose, price, progress, setPrice } = useCreateAuction(
+        collectionId,
+        tokenId,
+        onClose
+    )
     const ethBalance = useEthBalance()
-
     return (
         <ChakraModal title="Create Sell" isOpen={isOpen} onClose={handleClose}>
             <FormControl mb={4}>
                 <FormLabel>Currency</FormLabel>
                 <ButtonGroup isAttached>
-                    <Button variant={currency === "ETH" ? "solid" : "outline"} onClick={() => setCurrency("ETH")}>
-                        ETH
-                    </Button>
-                    <Button variant={currency === "WETH" ? "solid" : "outline"} onClick={() => setCurrency("WETH")}>
-                        WETH
-                    </Button>
+                    <Button variant="outline">ETH</Button>
+                    <Button variant="solid">WETH</Button>
                 </ButtonGroup>
             </FormControl>
             <FormControl mb={4}>
-                <FormLabel>Price</FormLabel>
+                <FormLabel>Starting price</FormLabel>
                 <CurrencyInput value={price} setValue={setPrice} maxValue={weiToEther(ethBalance)} />
             </FormControl>
             <Text mb={4} fontSize="sm" color="whiteAlpha.500">
@@ -32,9 +30,9 @@ const SellModal = ({ isOpen, onClose, collectionId, tokenId }) => {
             <HStack>
                 <Button
                     w="8rem"
-                    onClick={() => mutateCreateListing()}
-                    isLoading={isCreatingListing}
-                    loadingText={progress || "Loading"}
+                    onClick={() => mutateCreateAuction()}
+                    isLoading={isCreatingAuction}
+                    loadingText={progress}
                 >
                     Confirm
                 </Button>
@@ -43,4 +41,4 @@ const SellModal = ({ isOpen, onClose, collectionId, tokenId }) => {
     )
 }
 
-export default SellModal
+export default CreateAuctionModal

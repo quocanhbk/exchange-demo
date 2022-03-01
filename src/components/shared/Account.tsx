@@ -1,26 +1,16 @@
 import { Button, Box, Text, Flex } from "@chakra-ui/react"
 import { useQuery } from "react-query"
 import { getMe, loadMessageLogin, loginWithSignature } from "../../api"
+import { weiToEther } from "../../contracts"
+import { useEthBalance, useWethBalance } from "../../hooks"
 import useWalletContext from "../../web3/useWalletContext"
 
 export const Account = () => {
     const wallet = useWalletContext()
 
-    const { data: ethBalance } = useQuery(
-        "eth-balance",
-        () => wallet.scCaller.current?.getEtherBalance(wallet.account!),
-        {
-            enabled: !!wallet.scCaller.current && !!wallet.account,
-        }
-    )
+    const ethBalance = useEthBalance()
 
-    const { data: wethBalance } = useQuery(
-        "weth-balance",
-        () => wallet.scCaller.current?.Weth.getBalance(wallet.account!),
-        {
-            enabled: !!wallet.scCaller.current && !!wallet.account,
-        }
-    )
+    const wethBalance = useWethBalance()
 
     if (!wallet.isActive)
         return (
@@ -43,24 +33,29 @@ export const Account = () => {
                 <Text fontWeight="semibold" w="5rem">
                     Account
                 </Text>
-                <Text color="teal.500" ml={2}>
+                <Text color={wallet.token ? "teal.500" : "red.500"} ml={2}>
                     {wallet.account}
                 </Text>
+                {!wallet.token && (
+                    <Button size="sm" colorScheme="teal">
+                        Sign Message
+                    </Button>
+                )}
             </Flex>
             <Flex>
                 <Text fontWeight={"semibold"} w="5rem">
                     ETH
                 </Text>
                 <Text color="yellow.500" ml={2}>
-                    {ethBalance}
+                    {weiToEther(ethBalance)}
                 </Text>
             </Flex>
             <Flex>
                 <Text fontWeight={"semibold"} w="5rem">
                     WETH
                 </Text>
-                <Text color="red.500" ml={2}>
-                    {wethBalance}
+                <Text color="pink.500" ml={2}>
+                    {weiToEther(wethBalance)}
                 </Text>
             </Flex>
         </Box>

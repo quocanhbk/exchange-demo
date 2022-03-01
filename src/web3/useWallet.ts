@@ -1,7 +1,9 @@
+import { toast } from "@chakra-ui/react"
 import { useWeb3React, UnsupportedChainIdError } from "@web3-react/core"
 import { useState, useRef, useMemo, useCallback, useEffect } from "react"
 import { getMe, loadMessageLogin, loginWithSignature } from "../api"
 import { ContractCaller } from "../contracts"
+import { useChakraToast } from "../hooks"
 import { getChain } from "./chains"
 import { connectors, ConnectorId } from "./connectors"
 import { ChainUnsupportedError } from "./errors"
@@ -13,10 +15,12 @@ import {
     getLastConnector,
     getLastActiveAccount,
     setToken,
+    getToken,
 } from "./utils"
 
 const useWallet = () => {
     const [connectorName, setConnectorName] = useState<ConnectorId | null>(null)
+    const toast = useChakraToast()
     const [status, setStatus] = useState<Status>("disconnected")
     const [error, setError] = useState<Error | null>(null)
     const web3React = useWeb3React()
@@ -47,20 +51,28 @@ const useWallet = () => {
 
     useEffect(() => {
         const login = async () => {
-            if (web3React.library) {
-                scCaller.current = new ContractCaller(web3React.library)
-                const me = await getMe()
-                console.log("ME", me)
-                if (!me) {
+            const me = await getMe()
+            if (account && (getLastActiveAccount() !== account || !me)) {
+                try {
                     const data = await loadMessageLogin(account as string)
-                    const signature = await scCaller.current?.sign(data.message)
+                    const signature = await scCaller.current!.sign(data.message)
                     const token = await loginWithSignature(account as string, data.time, signature)
                     setToken(token)
+                    setLastActiveAccount(account)
+                } catch (e: any) {
+                    if (e?.code === 4001) {
+                        toast({
+                            status: "error",
+                            title: "User denied to sign message",
+                            description: "Please try again",
+                        })
+                    }
+                    setToken("")
                 }
             }
         }
         login()
-    }, [web3React.library, account])
+    }, [account])
 
     // connect to wallet
     const connect = useCallback(
@@ -90,14 +102,14 @@ const useWallet = () => {
 
                 // save last connector name to login after refresh
                 setLastConnector(connectorId)
-
                 const account = await web3ReactConnector.getAccount()
+
+                account && setLastActiveAccount(account)
 
                 // listen to some event
                 if (connectorId === "injected") {
-                    account && setLastActiveAccount(account)
                     web3ReactConnector.getProvider().then(provider => {
-                        provider.on("accountsChanged", () => {
+                        provider.on("accountsChanged", async () => {
                             reset()
                             console.log("Account changed!")
                         })
@@ -144,6 +156,13 @@ const useWallet = () => {
         }
     }, [connect])
 
+    // init contract caller when ethereum provider is ready
+    useEffect(() => {
+        if (web3React.library) {
+            scCaller.current = new ContractCaller(web3React.library)
+        }
+    }, [web3React.library, account])
+
     const wallet = {
         web3React,
         account: account?.toLowerCase() || null,
@@ -156,6 +175,7 @@ const useWallet = () => {
         isActive: web3React.active,
         ethereum: web3React.library,
         scCaller,
+        token: getToken(),
     }
 
     return wallet
